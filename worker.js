@@ -1,12 +1,361 @@
-// _worker.js - Complete single file deployment
+// _worker.js - Complete Cloudflare Worker with Fixed Dates
 
 const TOTAL_JOBS = 2000000;
 const JOBS_PER_PAGE = 20;
 const TOTAL_SITEMAPS = 2000;
-const SITE_URL = 'https://usa-remote-jobs.pages.dev';
+
+// ── COMPLETE JOB TITLES (200+) ──────────────────────────────────────────────
+
+const jobTitles = [
+  'Software Engineer','Senior Software Engineer','Staff Software Engineer','Principal Software Engineer',
+  'Frontend Developer','Senior Frontend Developer','Backend Developer','Senior Backend Developer',
+  'Full Stack Developer','Senior Full Stack Developer','Lead Software Engineer','Software Architect',
+  'iOS Developer','Android Developer','Mobile Developer','React Native Developer',
+  'DevOps Engineer','Senior DevOps Engineer','Site Reliability Engineer','Platform Engineer',
+  'Cloud Engineer','AWS Solutions Architect','Azure Cloud Engineer','GCP Engineer',
+  'Data Engineer','Senior Data Engineer','Machine Learning Engineer','AI Engineer',
+  'Deep Learning Engineer','NLP Engineer','Computer Vision Engineer','MLOps Engineer',
+  'Blockchain Developer','Smart Contract Developer','Web3 Developer','Solidity Developer',
+  'Embedded Systems Engineer','Firmware Engineer','Systems Engineer','QA Engineer',
+  'Automation Test Engineer','SDET','Performance Engineer','Security Engineer',
+  'Cybersecurity Engineer','Penetration Tester','Application Security Engineer','InfoSec Engineer',
+  'Game Developer','Unity Developer','Unreal Engine Developer','Graphics Programmer',
+  'Database Engineer','DBA','PostgreSQL DBA','MySQL DBA','NoSQL Engineer',
+  'API Developer','Microservices Engineer','Integration Engineer','ETL Developer',
+  'Data Scientist','Senior Data Scientist','Principal Data Scientist','Data Analyst',
+  'Senior Data Analyst','Business Intelligence Analyst','BI Developer','Analytics Engineer',
+  'Quantitative Analyst','Research Scientist','Applied Scientist','ML Researcher',
+  'Data Architect','Big Data Engineer','Spark Engineer','Kafka Engineer',
+  'Product Manager','Senior Product Manager','Principal Product Manager','Group Product Manager',
+  'Product Designer','Senior Product Designer','UX Designer','UI Designer','UX Researcher',
+  'UX/UI Designer','Design Lead','Creative Director','Visual Designer','Interaction Designer',
+  'Brand Designer','Motion Designer','Graphic Designer','Web Designer',
+  'Digital Marketing Manager','SEO Specialist','SEM Specialist','Content Strategist',
+  'Content Writer','Copywriter','Technical Writer','Social Media Manager',
+  'Email Marketing Specialist','Growth Hacker','Performance Marketer','Demand Gen Manager',
+  'Product Marketing Manager','Brand Manager','Marketing Analyst','CRO Specialist',
+  'Account Executive','Senior Account Executive','Enterprise Account Executive',
+  'Sales Development Representative','Business Development Manager','Partnerships Manager',
+  'Customer Success Manager','Customer Success Engineer','Solutions Engineer','Sales Engineer',
+  'Financial Analyst','Senior Financial Analyst','FP&A Analyst','Accounting Manager',
+  'Controller','CFO','Revenue Operations Manager','Sales Operations Analyst',
+  'Operations Manager','Project Manager','Program Manager','Scrum Master','Agile Coach',
+  'Technical Recruiter','Senior Recruiter','Talent Acquisition Manager','HR Manager',
+  'People Operations Manager','Compensation Analyst','L&D Specialist',
+  'Customer Support Specialist','Technical Support Engineer','Support Team Lead',
+  'Legal Counsel','Privacy Counsel','Compliance Manager','Risk Analyst',
+  'Clinical Data Manager','Bioinformatics Scientist','Health Informatics Analyst',
+  'Medical Writer','Regulatory Affairs Specialist','Clinical Research Associate'
+];
+
+// ── COMPLETE COMPANIES (150+) ───────────────────────────────────────────────
+
+const companies = [
+  'Google','Meta','Apple','Amazon','Microsoft','Netflix','Spotify','Shopify','Stripe',
+  'Airbnb','Uber','Lyft','Twitter','LinkedIn','Salesforce','Slack','Zoom','Dropbox',
+  'GitHub','GitLab','Atlassian','Twilio','Cloudflare','Fastly','Datadog','Splunk',
+  'HashiCorp','MongoDB','Elastic','Redis Labs','Snowflake','Databricks','Palantir',
+  'Figma','Canva','Notion','Airtable','Asana','Monday.com','ClickUp','Linear',
+  'HubSpot','Zendesk','Intercom','Freshworks','ServiceNow','Workday','Rippling',
+  'Gusto','BambooHR','Lattice','Culture Amp','Greenhouse','Lever','Workable',
+  'Coinbase','Kraken','Chainalysis','OpenSea','Alchemy','Consensys','Circle',
+  'OpenAI','Anthropic','Cohere','Hugging Face','Scale AI','Weights & Biases',
+  'Robinhood','Brex','Ramp','Plaid','Marqeta','Affirm','Klarna','Chime',
+  'DoorDash','Instacart','Rappi','Deliveroo','Postmates','GoPuff',
+  'Peloton','Calm','Headspace','Noom','Hims','Ro','Forward','Carbon Health',
+  'Duolingo','Coursera','Udemy','Chegg','Kahoot','Quizlet','Masterclass',
+  'Twitch','Discord','Reddit','Pinterest','Snap','TikTok','Bytedance',
+  'Palantir','Anduril','Shield AI','Rebellion Defense','Samsara','Matterport',
+  'Waymo','Cruise','Aurora','Rivian','Lucid Motors','Bird','Lime',
+  'SpaceX','Relativity Space','Planet Labs','Rocket Lab','Astranis',
+  'Vercel','Netlify','Supabase','PlanetScale','Neon','Railway','Render',
+  'Grafana','New Relic','PagerDuty','OpsGenie','StatusPage','Incident.io',
+  'Auth0','Okta','CrowdStrike','SentinelOne','Snyk','Wiz','Lacework',
+  'Carta','Equity Bee','AngelList','Gust','Visible','Landscape',
+  'Loom','Miro','Whimsical','Lucidchart','Storybook','Chromatic',
+  'Postman','Insomnia','RapidAPI','Kong','Apigee','MuleSoft',
+  'dbt Labs','Airbyte','Fivetran','Segment','mParticle','Rudderstack',
+  'LaunchDarkly','Split.io','Optimizely','Amplitude','Mixpanel','Heap',
+  'Contentful','Sanity','Strapi','Ghost','WordPress VIP','Webflow',
+  'Algolia','Typesense','Elasticsearch','Solr','Meilisearch'
+];
+
+// ── COMPLETE LOCATIONS ──────────────────────────────────────────────────────
+
+const usaStates = [
+  'Remote — California, USA','Remote — New York, USA','Remote — Texas, USA',
+  'Remote — Washington, USA','Remote — Florida, USA','Remote — Illinois, USA',
+  'Remote — Massachusetts, USA','Remote — Colorado, USA','Remote — Georgia, USA',
+  'Remote — Virginia, USA','Remote — North Carolina, USA','Remote — Oregon, USA',
+  'Remote — Arizona, USA','Remote — Nevada, USA','Remote — Michigan, USA',
+  'Remote — Pennsylvania, USA','Remote — Ohio, USA','Remote — Minnesota, USA',
+  'Remote — Utah, USA','Remote — Tennessee, USA','Remote — Wisconsin, USA',
+  'Remote — Maryland, USA','Remote — Connecticut, USA','Remote — Indiana, USA',
+  'Remote — Missouri, USA','Remote — Kansas, USA','Remote — New Jersey, USA',
+  'Fully Remote — USA','Fully Remote — Worldwide','Remote — Austin, TX',
+  'Remote — San Francisco, CA','Remote — New York City, NY','Remote — Seattle, WA',
+  'Remote — Boston, MA','Remote — Chicago, IL','Remote — Denver, CO',
+  'Remote — Atlanta, GA','Remote — Los Angeles, CA','Remote — Miami, FL'
+];
+
+// ── COMPLETE INDUSTRIES ─────────────────────────────────────────────────────
+
+const industries = [
+  'Software & SaaS','FinTech','HealthTech','EdTech','E-Commerce','Cybersecurity',
+  'Artificial Intelligence','Blockchain & Web3','Cloud Computing','DevTools',
+  'Marketing Tech','HR Tech','LegalTech','PropTech','InsurTech','Gaming',
+  'Media & Entertainment','Social Media','Logistics & Supply Chain',
+  'Autonomous Vehicles','Space Tech','Clean Energy','BioTech','Data & Analytics'
+];
+
+// ── JOB TYPES ─────────────────────────────────────────────────────────────────
+
+const jobTypes = ['Full-time','Contract','Part-time','Freelance','Full-time Contract'];
+
+// ── EXPERIENCE LEVELS ────────────────────────────────────────────────────────
+
+const experienceLevels = [
+  'Entry Level (0-2 yrs)','Mid Level (2-5 yrs)','Senior Level (5-8 yrs)',
+  'Lead / Staff (8+ yrs)','Principal / Director (10+ yrs)'
+];
+
+// ── SALARY RANGES ────────────────────────────────────────────────────────────
+
+const salaryRanges = [
+  '$45,000 – $65,000/yr','$60,000 – $85,000/yr','$80,000 – $110,000/yr',
+  '$100,000 – $140,000/yr','$130,000 – $170,000/yr','$150,000 – $200,000/yr',
+  '$180,000 – $240,000/yr','$200,000 – $280,000/yr','$60 – $80/hr','$80 – $120/hr',
+  '$120 – $160/hr','$160 – $200/hr','Competitive + Equity','$90,000 – $130,000/yr',
+  '$110,000 – $150,000/yr','$70,000 – $100,000/yr'
+];
+
+// ── COMPLETE COUNTRIES (100+) ──────────────────────────────────────────────
+
+const allCountries = [
+  'United States','United Kingdom','Canada','Australia','Germany','France','Netherlands',
+  'Sweden','Norway','Denmark','Finland','Switzerland','Austria','Belgium','Ireland',
+  'Spain','Portugal','Italy','Poland','Czech Republic','Romania','Hungary','Bulgaria',
+  'Croatia','Slovakia','Slovenia','Estonia','Latvia','Lithuania','Greece','Cyprus',
+  'Malta','Luxembourg','Iceland','Liechtenstein','Monaco','San Marino',
+  'Brazil','Argentina','Chile','Colombia','Mexico','Peru','Uruguay','Ecuador',
+  'Costa Rica','Panama','Paraguay','Bolivia','Venezuela','Honduras','Guatemala',
+  'India','Pakistan','Bangladesh','Sri Lanka','Nepal','Philippines','Vietnam',
+  'Thailand','Indonesia','Malaysia','Singapore','South Korea','Japan','China',
+  'Taiwan','Hong Kong','Myanmar','Cambodia','Laos','Mongolia','Bhutan',
+  'Nigeria','Kenya','South Africa','Ghana','Egypt','Morocco','Tunisia','Ethiopia',
+  'Tanzania','Uganda','Rwanda','Senegal','Cameroon','Ivory Coast','Mozambique',
+  'New Zealand','Fiji','Papua New Guinea','Samoa','Tonga',
+  'Israel','UAE','Saudi Arabia','Jordan','Lebanon','Turkey','Georgia','Armenia',
+  'Ukraine','Russia','Kazakhstan','Uzbekistan','Belarus','Serbia','Albania',
+  'Bosnia and Herzegovina','North Macedonia','Kosovo','Montenegro','Moldova'
+];
+
+// ── COMPLETE DESCRIPTION TEMPLATES ─────────────────────────────────────────
+
+const descTemplates = [
+  (title, company, industry) => `${company} is hiring a ${title} to join our fully remote team. We're a fast-growing ${industry} company building products used by millions worldwide.
+
+**What You'll Do:**
+• Design, build, and maintain scalable systems and features
+• Collaborate with cross-functional teams across multiple time zones
+• Write clean, well-tested, production-ready code
+• Participate in code reviews and architectural discussions
+• Mentor junior team members and contribute to engineering culture
+
+**Requirements:**
+• 3+ years of relevant experience in a similar role
+• Strong problem-solving skills and attention to detail
+• Experience working in agile/scrum environments
+• Excellent written and verbal communication skills (remote-first team)
+• Passion for building products that make a real difference
+
+**Benefits:**
+• Fully remote — work from anywhere in the world
+• Competitive salary + equity package
+• Health, dental, and vision insurance
+• $2,000 home office stipend
+• Unlimited PTO + 15 company holidays
+• 401(k) with company match
+• Annual learning & development budget of $1,500
+• Team retreats twice a year`,
+
+  (title, company, industry) => `Join ${company} as a ${title} and help us revolutionize the ${industry} space. This is a 100% remote position open to candidates worldwide.
+
+**About the Role:**
+As a ${title}, you will be a key player in our engineering/product organization. You'll work closely with our team to ship high-quality features and drive impact across our platform.
+
+**Responsibilities:**
+• Lead end-to-end development of major product features
+• Partner with product managers, designers, and stakeholders
+• Own technical quality and reliability of your domain
+• Drive technical direction and best practices
+• Contribute to our inclusive, remote-first engineering culture
+
+**What We're Looking For:**
+• Proven track record in a ${title} or similar role
+• Strong technical foundation and eagerness to learn
+• High ownership mentality — you see problems and fix them
+• Async communication skills (we're remote-first)
+• Experience with modern tools and workflows
+
+**Perks & Compensation:**
+• Market-competitive compensation + equity
+• Remote-first culture with async flexibility
+• Full benefits package (health, dental, vision)
+• $1,500/year learning budget
+• 4-day workweek option available
+• Paid parental leave (16 weeks)`,
+
+  (title, company, industry) => `${company} (${industry}) is looking for a talented ${title} to work remotely and help us scale our platform to the next level.
+
+**The Mission:**
+We're on a mission to transform the ${industry} industry. As a ${title}, you'll be central to achieving that goal by building reliable, performant, and user-loved products.
+
+**Day-to-Day:**
+• Ship features end-to-end with high quality and speed
+• Work asynchronously with teammates across time zones
+• Participate in planning, estimation, and retrospectives
+• Proactively identify and resolve technical debt
+• Collaborate with design, product, and data teams
+
+**You Should Have:**
+• Experience in a ${title} role or equivalent
+• Strong attention to craft — you care about quality
+• Comfort working independently in a remote environment
+• Clear communication and documentation habits
+• A growth mindset and eagerness to level up
+
+**Why ${company}:**
+• Truly remote-first (we've been remote since day one)
+• Transparent culture with open salary bands
+• Top-tier compensation and meaningful equity
+• Flexible hours — own your schedule
+• 30 days paid vacation globally
+• Monthly wellness stipend ($150/mo)
+• Latest MacBook Pro + accessories provided`
+];
+
+// ── HELPER FUNCTIONS ─────────────────────────────────────────────────────────
+
+function pick(arr, seed) {
+  return arr[Math.abs(seed) % arr.length];
+}
+
+// ✅ UPDATED: All jobs have the same date
+function getPostedDate(id) {
+  return '2026-07-01';
+}
+
+// ✅ UPDATED: All jobs have the same valid through date
+function getValidThrough(postedDate) {
+  return '2026-12-29';
+}
+
+function getJobData(id) {
+  const s1 = id * 7 + 13;
+  const s2 = id * 11 + 97;
+  const s3 = id * 17 + 53;
+  const s4 = id * 23 + 31;
+  const s5 = id * 29 + 71;
+  const s6 = id * 37 + 19;
+  const s7 = id * 41 + 83;
+
+  const title = pick(jobTitles, s1);
+  const company = pick(companies, s2);
+  const location = pick(usaStates, s3);
+  const industry = pick(industries, s4);
+  const jobType = pick(jobTypes, s5);
+  const experience = pick(experienceLevels, s6);
+  const salary = pick(salaryRanges, s7);
+  const postedDate = getPostedDate(id);
+  const descFn = pick(descTemplates, id * 3 + 7);
+  const description = descFn(title, company, industry);
+
+  return {
+    id, title, company, location, industry, jobType,
+    experience, salary, postedDate, description, isRemote: true
+  };
+}
+
+// ── JSON-LD SCHEMA WITH ALL COUNTRIES ──────────────────────────────────────
+
+function getJobSchema(job) {
+  const salaryStr = job.salary.replace(/[^0-9,]/g, '').split(',')[0] || '80000';
+  const minSalary = parseInt(salaryStr.replace(/,/g, '')) || 80000;
+  const maxSalary = minSalary + 40000;
+
+  const experienceMonths = {
+    'Entry Level (0-2 yrs)': 12,
+    'Mid Level (2-5 yrs)': 36,
+    'Senior Level (5-8 yrs)': 60,
+    'Lead / Staff (8+ yrs)': 96,
+    'Principal / Director (10+ yrs)': 120
+  };
+
+  const employmentTypeMap = {
+    'Full-time': 'FULL_TIME',
+    'Contract': 'CONTRACTOR',
+    'Part-time': 'PART_TIME',
+    'Freelance': 'CONTRACTOR',
+    'Full-time Contract': 'CONTRACTOR'
+  };
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    "title": job.title,
+    "description": job.description,
+    "datePosted": job.postedDate,
+    "validThrough": getValidThrough(job.postedDate),
+    "employmentType": employmentTypeMap[job.jobType] || 'FULL_TIME',
+    "hiringOrganization": {
+      "@type": "Organization",
+      "name": job.company
+    },
+    "jobLocation": {
+      "@type": "Place",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "US"
+      }
+    },
+    "jobLocationType": "TELECOMMUTE",
+    "applicantLocationRequirements": allCountries.map(country => ({
+      "@type": "Country",
+      "name": country
+    })),
+    "baseSalary": {
+      "@type": "MonetaryAmount",
+      "currency": "USD",
+      "value": {
+        "@type": "QuantitativeValue",
+        "minValue": minSalary,
+        "maxValue": maxSalary,
+        "unitText": "YEAR"
+      }
+    },
+    "experienceRequirements": {
+      "@type": "OccupationalExperienceRequirements",
+      "monthsOfExperience": experienceMonths[job.experience] || 36
+    },
+    "educationRequirements": {
+      "@type": "EducationalOccupationalCredential",
+      "credentialCategory": "Bachelor's degree or equivalent"
+    },
+    "industry": job.industry,
+    "identifier": {
+      "@type": "PropertyValue",
+      "name": "Job ID",
+      "value": `USA-${String(job.id).padStart(7, '0')}`
+    }
+  };
+}
 
 // ── HTML RENDERER ─────────────────────────────────────────────────────────────
+
 function renderHTML({ title, meta, bodyContent, schema, canonical }) {
+  const SITE_URL = 'https://usa-remote-jobs.amychauhan95.workers.dev';
+  
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -112,323 +461,22 @@ function openApply(title){
 </html>`;
 }
 
-// ── Job Data ──────────────────────────────────────────────────────────────────
-const jobTitles = [
-  'Software Engineer','Senior Software Engineer','Staff Software Engineer','Principal Software Engineer',
-  'Frontend Developer','Senior Frontend Developer','Backend Developer','Senior Backend Developer',
-  'Full Stack Developer','Senior Full Stack Developer','Lead Software Engineer','Software Architect',
-  'iOS Developer','Android Developer','Mobile Developer','React Native Developer',
-  'DevOps Engineer','Senior DevOps Engineer','Site Reliability Engineer','Platform Engineer',
-  'Cloud Engineer','AWS Solutions Architect','Azure Cloud Engineer','GCP Engineer',
-  'Data Engineer','Senior Data Engineer','Machine Learning Engineer','AI Engineer',
-  'Deep Learning Engineer','NLP Engineer','Computer Vision Engineer','MLOps Engineer',
-  'Blockchain Developer','Smart Contract Developer','Web3 Developer','Solidity Developer',
-  'Embedded Systems Engineer','Firmware Engineer','Systems Engineer','QA Engineer',
-  'Automation Test Engineer','SDET','Performance Engineer','Security Engineer',
-  'Cybersecurity Engineer','Penetration Tester','Application Security Engineer','InfoSec Engineer',
-  'Game Developer','Unity Developer','Unreal Engine Developer','Graphics Programmer',
-  'Database Engineer','DBA','PostgreSQL DBA','MySQL DBA','NoSQL Engineer',
-  'API Developer','Microservices Engineer','Integration Engineer','ETL Developer',
-  'Data Scientist','Senior Data Scientist','Principal Data Scientist','Data Analyst',
-  'Senior Data Analyst','Business Intelligence Analyst','BI Developer','Analytics Engineer',
-  'Quantitative Analyst','Research Scientist','Applied Scientist','ML Researcher',
-  'Data Architect','Big Data Engineer','Spark Engineer','Kafka Engineer',
-  'Product Manager','Senior Product Manager','Principal Product Manager','Group Product Manager',
-  'Product Designer','Senior Product Designer','UX Designer','UI Designer','UX Researcher',
-  'UX/UI Designer','Design Lead','Creative Director','Visual Designer','Interaction Designer',
-  'Brand Designer','Motion Designer','Graphic Designer','Web Designer',
-  'Digital Marketing Manager','SEO Specialist','SEM Specialist','Content Strategist',
-  'Content Writer','Copywriter','Technical Writer','Social Media Manager',
-  'Email Marketing Specialist','Growth Hacker','Performance Marketer','Demand Gen Manager',
-  'Product Marketing Manager','Brand Manager','Marketing Analyst','CRO Specialist',
-  'Account Executive','Senior Account Executive','Enterprise Account Executive',
-  'Sales Development Representative','Business Development Manager','Partnerships Manager',
-  'Customer Success Manager','Customer Success Engineer','Solutions Engineer','Sales Engineer',
-  'Financial Analyst','Senior Financial Analyst','FP&A Analyst','Accounting Manager',
-  'Controller','CFO','Revenue Operations Manager','Sales Operations Analyst',
-  'Operations Manager','Project Manager','Program Manager','Scrum Master','Agile Coach',
-  'Technical Recruiter','Senior Recruiter','Talent Acquisition Manager','HR Manager',
-  'People Operations Manager','Compensation Analyst','L&D Specialist',
-  'Customer Support Specialist','Technical Support Engineer','Support Team Lead',
-  'Legal Counsel','Privacy Counsel','Compliance Manager','Risk Analyst',
-  'Clinical Data Manager','Bioinformatics Scientist','Health Informatics Analyst',
-  'Medical Writer','Regulatory Affairs Specialist','Clinical Research Associate'
-];
+// ── CLOUDFLARE WORKER ────────────────────────────────────────────────────────
 
-const companies = [
-  'Google','Meta','Apple','Amazon','Microsoft','Netflix','Spotify','Shopify','Stripe',
-  'Airbnb','Uber','Lyft','Twitter','LinkedIn','Salesforce','Slack','Zoom','Dropbox',
-  'GitHub','GitLab','Atlassian','Twilio','Cloudflare','Fastly','Datadog','Splunk',
-  'HashiCorp','MongoDB','Elastic','Redis Labs','Snowflake','Databricks','Palantir',
-  'Figma','Canva','Notion','Airtable','Asana','Monday.com','ClickUp','Linear',
-  'HubSpot','Zendesk','Intercom','Freshworks','ServiceNow','Workday','Rippling',
-  'Gusto','BambooHR','Lattice','Culture Amp','Greenhouse','Lever','Workable',
-  'Coinbase','Kraken','Chainalysis','OpenSea','Alchemy','Consensys','Circle',
-  'OpenAI','Anthropic','Cohere','Hugging Face','Scale AI','Weights & Biases',
-  'Robinhood','Brex','Ramp','Plaid','Marqeta','Affirm','Klarna','Chime',
-  'DoorDash','Instacart','Rappi','Deliveroo','Postmates','GoPuff',
-  'Peloton','Calm','Headspace','Noom','Hims','Ro','Forward','Carbon Health',
-  'Duolingo','Coursera','Udemy','Chegg','Kahoot','Quizlet','Masterclass',
-  'Twitch','Discord','Reddit','Pinterest','Snap','TikTok','Bytedance',
-  'Palantir','Anduril','Shield AI','Rebellion Defense','Samsara','Matterport',
-  'Waymo','Cruise','Aurora','Rivian','Lucid Motors','Bird','Lime',
-  'SpaceX','Relativity Space','Planet Labs','Rocket Lab','Astranis',
-  'Vercel','Netlify','Supabase','PlanetScale','Neon','Railway','Render',
-  'Grafana','New Relic','PagerDuty','OpsGenie','StatusPage','Incident.io',
-  'Auth0','Okta','CrowdStrike','SentinelOne','Snyk','Wiz','Lacework',
-  'Carta','Equity Bee','AngelList','Gust','Visible','Landscape',
-  'Loom','Miro','Whimsical','Lucidchart','Storybook','Chromatic',
-  'Postman','Insomnia','RapidAPI','Kong','Apigee','MuleSoft',
-  'dbt Labs','Airbyte','Fivetran','Segment','mParticle','Rudderstack',
-  'LaunchDarkly','Split.io','Optimizely','Amplitude','Mixpanel','Heap',
-  'Contentful','Sanity','Strapi','Ghost','WordPress VIP','Webflow',
-  'Algolia','Typesense','Elasticsearch','Solr','Meilisearch'
-];
-
-const usaStates = [
-  'Remote — California, USA','Remote — New York, USA','Remote — Texas, USA',
-  'Remote — Washington, USA','Remote — Florida, USA','Remote — Illinois, USA',
-  'Remote — Massachusetts, USA','Remote — Colorado, USA','Remote — Georgia, USA',
-  'Remote — Virginia, USA','Remote — North Carolina, USA','Remote — Oregon, USA',
-  'Remote — Arizona, USA','Remote — Nevada, USA','Remote — Michigan, USA',
-  'Remote — Pennsylvania, USA','Remote — Ohio, USA','Remote — Minnesota, USA',
-  'Remote — Utah, USA','Remote — Tennessee, USA','Remote — Wisconsin, USA',
-  'Remote — Maryland, USA','Remote — Connecticut, USA','Remote — Indiana, USA',
-  'Remote — Missouri, USA','Remote — Kansas, USA','Remote — New Jersey, USA',
-  'Fully Remote — USA','Fully Remote — Worldwide','Remote — Austin, TX',
-  'Remote — San Francisco, CA','Remote — New York City, NY','Remote — Seattle, WA',
-  'Remote — Boston, MA','Remote — Chicago, IL','Remote — Denver, CO',
-  'Remote — Atlanta, GA','Remote — Los Angeles, CA','Remote — Miami, FL'
-];
-
-const industries = [
-  'Software & SaaS','FinTech','HealthTech','EdTech','E-Commerce','Cybersecurity',
-  'Artificial Intelligence','Blockchain & Web3','Cloud Computing','DevTools',
-  'Marketing Tech','HR Tech','LegalTech','PropTech','InsurTech','Gaming',
-  'Media & Entertainment','Social Media','Logistics & Supply Chain',
-  'Autonomous Vehicles','Space Tech','Clean Energy','BioTech','Data & Analytics'
-];
-
-const jobTypes = ['Full-time','Contract','Part-time','Freelance','Full-time Contract'];
-
-const experienceLevels = [
-  'Entry Level (0-2 yrs)','Mid Level (2-5 yrs)','Senior Level (5-8 yrs)',
-  'Lead / Staff (8+ yrs)','Principal / Director (10+ yrs)'
-];
-
-const salaryRanges = [
-  '$45,000 – $65,000/yr','$60,000 – $85,000/yr','$80,000 – $110,000/yr',
-  '$100,000 – $140,000/yr','$130,000 – $170,000/yr','$150,000 – $200,000/yr',
-  '$180,000 – $240,000/yr','$200,000 – $280,000/yr','$60 – $80/hr','$80 – $120/hr',
-  '$120 – $160/hr','$160 – $200/hr','Competitive + Equity','$90,000 – $130,000/yr',
-  '$110,000 – $150,000/yr','$70,000 – $100,000/yr'
-];
-
-const allCountries = [
-  'United States','United Kingdom','Canada','Australia','Germany','France','Netherlands',
-  'Sweden','Norway','Denmark','Finland','Switzerland','Austria','Belgium','Ireland',
-  'Spain','Portugal','Italy','Poland','Czech Republic','Romania','Hungary','Bulgaria',
-  'Croatia','Slovakia','Slovenia','Estonia','Latvia','Lithuania','Greece','Cyprus',
-  'Malta','Luxembourg','Iceland','Liechtenstein','Monaco','San Marino',
-  'Brazil','Argentina','Chile','Colombia','Mexico','Peru','Uruguay','Ecuador',
-  'Costa Rica','Panama','Paraguay','Bolivia','Venezuela','Honduras','Guatemala',
-  'India','Pakistan','Bangladesh','Sri Lanka','Nepal','Philippines','Vietnam',
-  'Thailand','Indonesia','Malaysia','Singapore','South Korea','Japan','China',
-  'Taiwan','Hong Kong','Myanmar','Cambodia','Laos','Mongolia','Bhutan',
-  'Nigeria','Kenya','South Africa','Ghana','Egypt','Morocco','Tunisia','Ethiopia',
-  'Tanzania','Uganda','Rwanda','Senegal','Cameroon','Ivory Coast','Mozambique',
-  'New Zealand','Fiji','Papua New Guinea','Samoa','Tonga',
-  'Israel','UAE','Saudi Arabia','Jordan','Lebanon','Turkey','Georgia','Armenia',
-  'Ukraine','Russia','Kazakhstan','Uzbekistan','Belarus','Serbia','Albania',
-  'Bosnia and Herzegovina','North Macedonia','Kosovo','Montenegro','Moldova'
-];
-
-const descTemplates = [
-  (title, company, industry) => `${company} is hiring a ${title} to join our fully remote team. We're a fast-growing ${industry} company building products used by millions worldwide.
-
-**What You'll Do:**
-• Design, build, and maintain scalable systems and features
-• Collaborate with cross-functional teams across multiple time zones
-• Write clean, well-tested, production-ready code
-• Participate in code reviews and architectural discussions
-• Mentor junior team members and contribute to engineering culture
-
-**Requirements:**
-• 3+ years of relevant experience in a similar role
-• Strong problem-solving skills and attention to detail
-• Experience working in agile/scrum environments
-• Excellent written and verbal communication skills (remote-first team)
-• Passion for building products that make a real difference
-
-**Benefits:**
-• Fully remote — work from anywhere in the world
-• Competitive salary + equity package
-• Health, dental, and vision insurance
-• $2,000 home office stipend
-• Unlimited PTO + 15 company holidays
-• 401(k) with company match
-• Annual learning & development budget of $1,500
-• Team retreats twice a year`,
-
-  (title, company, industry) => `Join ${company} as a ${title} and help us revolutionize the ${industry} space. This is a 100% remote position open to candidates worldwide.
-
-**About the Role:**
-As a ${title}, you will be a key player in our engineering/product organization. You'll work closely with our team to ship high-quality features and drive impact across our platform.
-
-**Responsibilities:**
-• Lead end-to-end development of major product features
-• Partner with product managers, designers, and stakeholders
-• Own technical quality and reliability of your domain
-• Drive technical direction and best practices
-• Contribute to our inclusive, remote-first engineering culture
-
-**What We're Looking For:**
-• Proven track record in a ${title} or similar role
-• Strong technical foundation and eagerness to learn
-• High ownership mentality — you see problems and fix them
-• Async communication skills (we're remote-first)
-• Experience with modern tools and workflows
-
-**Perks & Compensation:**
-• Market-competitive compensation + equity
-• Remote-first culture with async flexibility
-• Full benefits package (health, dental, vision)
-• $1,500/year learning budget
-• 4-day workweek option available
-• Paid parental leave (16 weeks)`,
-
-  (title, company, industry) => `${company} (${industry}) is looking for a talented ${title} to work remotely and help us scale our platform to the next level.
-
-**The Mission:**
-We're on a mission to transform the ${industry} industry. As a ${title}, you'll be central to achieving that goal by building reliable, performant, and user-loved products.
-
-**Day-to-Day:**
-• Ship features end-to-end with high quality and speed
-• Work asynchronously with teammates across time zones
-• Participate in planning, estimation, and retrospectives
-• Proactively identify and resolve technical debt
-• Collaborate with design, product, and data teams
-
-**You Should Have:**
-• Experience in a ${title} role or equivalent
-• Strong attention to craft — you care about quality
-• Comfort working independently in a remote environment
-• Clear communication and documentation habits
-• A growth mindset and eagerness to level up
-
-**Why ${company}:**
-• Truly remote-first (we've been remote since day one)
-• Transparent culture with open salary bands
-• Top-tier compensation and meaningful equity
-• Flexible hours — own your schedule
-• 30 days paid vacation globally
-• Monthly wellness stipend ($150/mo)
-• Latest MacBook Pro + accessories provided`
-];
-
-function pick(arr, seed) { 
-  return arr[Math.abs(seed) % arr.length]; 
-}
-
-function getPostedDate(id) {
-  const daysAgo = (id % 540);
-  const d = new Date('2025-01-01');
-  d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().split('T')[0];
-}
-
-function getValidThrough(postedDate) {
-  const d = new Date(postedDate);
-  d.setDate(d.getDate() + 90);
-  return d.toISOString().split('T')[0];
-}
-
-function getJobData(id) {
-  const s1 = id * 7 + 13;
-  const s2 = id * 11 + 97;
-  const s3 = id * 17 + 53;
-  const s4 = id * 23 + 31;
-  const s5 = id * 29 + 71;
-  const s6 = id * 37 + 19;
-  const s7 = id * 41 + 83;
-
-  const title    = pick(jobTitles, s1);
-  const company  = pick(companies, s2);
-  const location = pick(usaStates, s3);
-  const industry = pick(industries, s4);
-  const jobType  = pick(jobTypes, s5);
-  const experience = pick(experienceLevels, s6);
-  const salary   = pick(salaryRanges, s7);
-  const postedDate = getPostedDate(id);
-  const descFn   = pick(descTemplates, id * 3 + 7);
-  const description = descFn(title, company, industry);
-
-  return { 
-    id, title, company, location, industry, jobType, 
-    experience, salary, postedDate, description, isRemote: true 
-  };
-}
-
-function getJobSchema(job) {
-  return {
-    "@context": "https://schema.org/",
-    "@type": "JobPosting",
-    "title": job.title,
-    "description": job.description,
-    "datePosted": job.postedDate,
-    "validThrough": getValidThrough(job.postedDate),
-    "employmentType": job.jobType === 'Full-time' ? 'FULL_TIME'
-                    : job.jobType === 'Part-time' ? 'PART_TIME'
-                    : job.jobType === 'Contract' || job.jobType === 'Full-time Contract' ? 'CONTRACTOR'
-                    : 'OTHER',
-    "hiringOrganization": {
-      "@type": "Organization",
-      "name": job.company
-    },
-    "jobLocation": {
-      "@type": "Place",
-      "address": {
-        "@type": "PostalAddress",
-        "addressCountry": "US"
-      }
-    },
-    "jobLocationType": "TELECOMMUTE",
-    "applicantLocationRequirements": allCountries.map(country => ({
-      "@type": "Country",
-      "name": country
-    })),
-    "baseSalary": {
-      "@type": "MonetaryAmount",
-      "currency": "USD",
-      "value": {
-        "@type": "QuantitativeValue",
-        "unitText": "YEAR"
-      }
-    },
-    "experienceRequirements": job.experience,
-    "industry": job.industry,
-    "identifier": {
-      "@type": "PropertyValue",
-      "name": "Job ID",
-      "value": `USA-${String(job.id).padStart(7, '0')}`
-    }
-  };
-}
-
-// ── Cloudflare Worker ──────────────────────────────────────────────────────────
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
     const searchParams = url.searchParams;
-    const siteUrl = env.SITE_URL || 'https://usa-remote-jobs.pages.dev';
-    
-    // ── HOME PAGE ─────────────────────────────────────────────────────────────────
-    if (path === '/') {
-      const featuredIds = [1,100,500,1000,5000,10000,50000,100000];
-      const featuredJobs = featuredIds.map(id => getJobData(id));
+    const SITE_URL = env.SITE_URL || 'https://usa-remote-jobs.amychauhan95.workers.dev';
 
-      const cards = featuredJobs.map(job => `
+    try {
+      // ── HOME PAGE ──────────────────────────────────────────────────────────────
+      if (path === '/') {
+        const featuredIds = [1, 100, 500, 1000, 5000, 10000, 50000, 100000];
+        const featuredJobs = featuredIds.map(id => getJobData(id));
+        
+        const cards = featuredJobs.map(job => `
 <a href="/jobs/${job.id}" style="display:block">
 <div class="job-card">
   <div class="card-top">
@@ -443,24 +491,23 @@ export default {
     <span>🏭 ${job.industry}</span>
     <span>📅 ${job.postedDate}</span>
   </div>
-  <div class="card-desc">${job.description.substring(0,180)}...</div>
+  <div class="card-desc">${job.description.substring(0, 180)}...</div>
   <div class="card-foot">
     <span class="salary">${job.salary}</span>
-    <button class="btn-apply" onclick="event.preventDefault();openApply('${job.title.replace(/'/g,"\\'")}')">Apply Now</button>
+    <button class="btn-apply" onclick="event.preventDefault();openApply('${job.title.replace(/'/g, "\\'")}')">Apply Now</button>
   </div>
 </div>
 </a>`).join('');
 
-      const schema = {
-        "@context":"https://schema.org",
-        "@type":"WebSite",
-        "name":"USARemoteJobs.io",
-        "url": siteUrl,
-        "description":"2,000,000 remote job listings — USA-based companies, open to applicants worldwide",
-        "potentialAction":{"@type":"SearchAction","target":`${siteUrl}/jobs?q={search_term_string}`,"query-input":"required name=search_term_string"}
-      };
+        const schema = {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "USARemoteJobs.io",
+          "url": SITE_URL,
+          "description": "2,000,000 remote job listings — USA-based companies, open to applicants worldwide"
+        };
 
-      const body = `
+        const body = `
 <div class="hero">
   <h1>2 Million <span class="accent">Remote Jobs</span> — USA Companies</h1>
   <p>Work from anywhere in the world. All jobs are 100% remote, posted by top US companies, open to global applicants.</p>
@@ -478,4 +525,323 @@ export default {
     <div class="stat"><strong>2,000,000</strong><span>Remote Jobs</span></div>
     <div class="stat"><strong>150+</strong><span>Top US Companies</span></div>
     <div class="stat"><strong>100+</strong><span>Countries Welcome</span></div>
-    <div class="stat"><strong>200+</strong><span>Job Categories</span
+    <div class="stat"><strong>200+</strong><span>Job Categories</span></div>
+    <div class="stat"><strong>$45K–$280K</strong><span>Salary Range</span></div>
+  </div>
+</div>
+<div class="container">
+  <div class="info-box">🌍 All jobs are <strong>100% remote</strong> — open to applicants from <strong>100+ countries</strong>. No visa sponsorship required for most roles.</div>
+  <h2 style="margin-bottom:1rem;font-size:1.2rem">Featured Remote Jobs</h2>
+  <div class="page-grid">${cards}</div>
+  <div style="text-align:center;margin-top:2rem">
+    <a href="/jobs" style="display:inline-block;padding:.9rem 2.5rem;background:#0a2540;color:#fff;border-radius:10px;font-weight:800">Browse All 2,000,000 Remote Jobs →</a>
+  </div>
+</div>`;
+
+        return new Response(renderHTML({
+          title: 'USARemoteJobs.io — 2,000,000 Remote Jobs | Work From Anywhere',
+          meta: 'Browse 2 million remote jobs at top US companies. Open to applicants worldwide — work from any country.',
+          bodyContent: body,
+          schema: schema,
+          canonical: '/'
+        }), {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      }
+
+      // ── JOB LISTING ─────────────────────────────────────────────────────────────
+      if (path === '/jobs') {
+        const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+        const typeFilter = searchParams.get('type') || 'all';
+        
+        const start = (page - 1) * JOBS_PER_PAGE + 1;
+        const jobs = [];
+        for (let i = start; i < start + JOBS_PER_PAGE && i <= TOTAL_JOBS; i++) {
+          jobs.push(getJobData(i));
+        }
+        const totalPages = Math.ceil(TOTAL_JOBS / JOBS_PER_PAGE);
+        
+        const cards = jobs.map(job => `
+<a href="/jobs/${job.id}" style="display:block">
+<div class="job-card">
+  <div class="card-top">
+    <div><div class="card-title">${job.title}</div><div class="card-co">${job.company}</div></div>
+    <div class="badges">
+      <span class="badge b-remote">🌐 Remote</span>
+      <span class="badge b-type">${job.jobType}</span>
+      <span class="badge b-exp">${job.experience}</span>
+    </div>
+  </div>
+  <div class="card-meta">
+    <span>📍 ${job.location}</span>
+    <span>🏭 ${job.industry}</span>
+    <span>📅 ${job.postedDate}</span>
+  </div>
+  <div class="card-desc">${job.description.substring(0, 200)}...</div>
+  <div class="card-foot">
+    <span class="salary">${job.salary}</span>
+    <button class="btn-apply" onclick="event.preventDefault();openApply('${job.title.replace(/'/g, "\\'")}')">Apply Now</button>
+  </div>
+</div>
+</a>`).join('');
+
+        // Pagination
+        const pages = [];
+        if (page > 1) pages.push(`<a href="/jobs?page=${page-1}&type=${typeFilter}">← Prev</a>`);
+        const ps = Math.max(1, page - 2);
+        const pe = Math.min(totalPages, page + 2);
+        if (ps > 1) pages.push(`<a href="/jobs?page=1&type=${typeFilter}">1</a><span>…</span>`);
+        for (let p = ps; p <= pe; p++) {
+          if (p === page) {
+            pages.push(`<span class="cur">${p.toLocaleString()}</span>`);
+          } else {
+            pages.push(`<a href="/jobs?page=${p}&type=${typeFilter}">${p.toLocaleString()}</a>`);
+          }
+        }
+        if (pe < totalPages) pages.push(`<span>…</span><a href="/jobs?page=${totalPages}&type=${typeFilter}">${totalPages.toLocaleString()}</a>`);
+        if (page < totalPages) pages.push(`<a href="/jobs?page=${page+1}&type=${typeFilter}">Next →</a>`);
+
+        const body = `
+<div class="hero" style="padding:1.75rem 1.5rem">
+  <h1 style="font-size:1.9rem">Browse <span class="accent">2,000,000 Remote Jobs</span></h1>
+  <p>Page ${page.toLocaleString()} of ${totalPages.toLocaleString()} — All USA companies, open worldwide</p>
+</div>
+<div class="filter-row">
+  <div class="filter-wrap">
+    <a href="/jobs"><span class="chip ${typeFilter === 'all' ? 'active' : ''}">All Jobs (2M)</span></a>
+    <a href="/jobs?type=fulltime"><span class="chip ${typeFilter === 'fulltime' ? 'active' : ''}">💼 Full-time</span></a>
+    <a href="/jobs?type=contract"><span class="chip ${typeFilter === 'contract' ? 'active' : ''}">📋 Contract</span></a>
+    <a href="/jobs?type=parttime"><span class="chip ${typeFilter === 'parttime' ? 'active' : ''}">⏰ Part-time</span></a>
+  </div>
+</div>
+<div class="container">
+  <div class="page-grid">${cards}</div>
+  <div class="pagination">${pages.join('')}</div>
+</div>`;
+
+        return new Response(renderHTML({
+          title: `Remote Jobs USA — Page ${page.toLocaleString()} | USARemoteJobs.io`,
+          meta: `Browse 2,000,000 remote jobs at US companies. Page ${page}. Open to applicants from all countries.`,
+          bodyContent: body,
+          schema: null,
+          canonical: `/jobs?page=${page}`
+        }), {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      }
+
+      // ── INDIVIDUAL JOB ─────────────────────────────────────────────────────────
+      if (path.startsWith('/jobs/')) {
+        const id = parseInt(path.split('/').pop());
+        if (!id || id < 1 || id > TOTAL_JOBS) {
+          const notFoundHTML = renderHTML({
+            title: 'Job Not Found | USARemoteJobs.io',
+            meta: 'Job not found.',
+            bodyContent: `<div class="container" style="text-align:center;padding:4rem 1.5rem"><h1>404 — Job Not Found</h1><p style="margin:1rem 0 2rem;color:#667">This job may have been filled.</p><a href="/jobs" style="color:#00a080;font-weight:600">← Browse All Jobs</a></div>`,
+            schema: null
+          });
+          return new Response(notFoundHTML, {
+            status: 404,
+            headers: { 'Content-Type': 'text/html' }
+          });
+        }
+
+        const job = getJobData(id);
+        const schema = getJobSchema(job);
+
+        const relatedIds = [Math.max(1, id - 2), Math.max(1, id - 1), Math.min(TOTAL_JOBS, id + 1), Math.min(TOTAL_JOBS, id + 2)]
+          .filter(r => r !== id).slice(0, 3);
+        
+        const relCards = relatedIds.map(rid => {
+          const rj = getJobData(rid);
+          return `<a href="/jobs/${rj.id}" style="display:block"><div class="job-card" style="padding:1rem"><div class="card-title" style="font-size:.93rem">${rj.title}</div><div class="card-co">${rj.company}</div><div style="margin-top:.5rem;display:flex;gap:.4rem;flex-wrap:wrap"><span class="badge b-remote" style="font-size:.7rem">🌐 Remote</span><span class="badge b-type" style="font-size:.7rem">${rj.jobType}</span></div></div></a>`;
+        }).join('');
+
+        const body = `
+<div class="container">
+  <div class="bc"><a href="/">Home</a> › <a href="/jobs">Remote Jobs</a> › ${job.title}</div>
+  <div class="remote-banner">🌍 100% Remote — Open to Applicants Worldwide</div>
+  <div class="job-detail">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1>${job.title}</h1>
+        <p style="font-size:1rem;color:#556;margin-top:.35rem">${job.company} · ${job.industry}</p>
+      </div>
+      <div style="text-align:right">
+        <span class="badge b-remote" style="font-size:.85rem;padding:.4rem 1rem">🌐 Remote Worldwide</span>
+        <div style="font-size:.78rem;color:#889;margin-top:.4rem">Job ID: USA-${String(job.id).padStart(7, '0')}</div>
+      </div>
+    </div>
+    <div class="detail-meta">
+      <span class="d-chip hi">💰 ${job.salary}</span>
+      <span class="d-chip">📍 ${job.location}</span>
+      <span class="d-chip">💼 ${job.jobType}</span>
+      <span class="d-chip">📊 ${job.experience}</span>
+      <span class="d-chip">🏭 ${job.industry}</span>
+      <span class="d-chip">📅 ${job.postedDate}</span>
+    </div>
+    <div class="detail-body">${job.description}</div>
+    <div class="apply-box">
+      <h3>Apply for this Remote Position</h3>
+      <p>Submit your application for <strong>${job.title}</strong> at <strong>${job.company}</strong> — takes less than 2 minutes. Open to applicants from 100+ countries.</p>
+      <button class="btn-big" onclick="openApply('${job.title.replace(/'/g, "\\'")}')">Apply Now →</button>
+    </div>
+  </div>
+  <div style="margin-top:2rem">
+    <h2 style="font-size:1.1rem;margin-bottom:1rem">Similar Remote Jobs</h2>
+    <div class="page-grid">${relCards}</div>
+  </div>
+  <div style="text-align:center;margin-top:1.5rem">
+    <a href="/jobs" style="color:#00a080;font-weight:600">← Browse All 2,000,000 Remote Jobs</a>
+  </div>
+</div>`;
+
+        return new Response(renderHTML({
+          title: `${job.title} at ${job.company} — Remote Worldwide | USARemoteJobs.io`,
+          meta: `${job.title} remote job at ${job.company}. ${job.salary}. Open to applicants worldwide. Apply now.`,
+          bodyContent: body,
+          schema: schema,
+          canonical: `/jobs/${id}`
+        }), {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      }
+
+      // ── SITEMAPS ─────────────────────────────────────────────────────────────────
+      if (path === '/sitemap.xml') {
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+        xml += `\n<sitemap><loc>${SITE_URL}/sitemap-static.xml</loc></sitemap>`;
+        for (let i = 1; i <= TOTAL_SITEMAPS; i++) {
+          xml += `\n<sitemap><loc>${SITE_URL}/sitemap-${i}.xml</loc></sitemap>`;
+        }
+        xml += `\n</sitemapindex>`;
+        return new Response(xml, {
+          headers: { 'Content-Type': 'application/xml' }
+        });
+      }
+
+      if (path === '/sitemap-static.xml') {
+        const pages = ['/', '/jobs', '/jobs?type=fulltime', '/jobs?type=contract', '/jobs?type=parttime', '/sitemap'];
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+        pages.forEach(p => {
+          xml += `\n<url><loc>${SITE_URL}${p}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`;
+        });
+        xml += `\n</urlset>`;
+        return new Response(xml, {
+          headers: { 'Content-Type': 'application/xml' }
+        });
+      }
+
+      if (path.startsWith('/sitemap-') && path.endsWith('.xml')) {
+        const num = parseInt(path.replace('/sitemap-', '').replace('.xml', ''));
+        if (!num || num < 1 || num > TOTAL_SITEMAPS) {
+          return new Response('Not found', { status: 404 });
+        }
+        const start = (num - 1) * 1000 + 1;
+        const end = Math.min(num * 1000, TOTAL_JOBS);
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+        for (let i = start; i <= end; i++) {
+          xml += `\n<url><loc>${SITE_URL}/jobs/${i}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`;
+        }
+        xml += `\n</urlset>`;
+        return new Response(xml, {
+          headers: { 'Content-Type': 'application/xml' }
+        });
+      }
+
+      if (path === '/sitemap') {
+        const body = `
+<div class="container">
+  <h1 style="margin-bottom:1rem">Sitemap — USARemoteJobs.io</h1>
+  <div class="info-box">📌 2,000,000 remote job pages + ${TOTAL_SITEMAPS.toLocaleString()} XML sitemap files for search engines</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:1rem">
+    <div class="job-card">
+      <div class="card-title">Main Pages</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.75rem;font-size:.88rem">
+        <a href="/" style="color:#00a080">🏠 Home</a>
+        <a href="/jobs" style="color:#00a080">📋 All Remote Jobs (2,000,000)</a>
+        <a href="/jobs?type=fulltime" style="color:#00a080">💼 Full-time Remote</a>
+        <a href="/jobs?type=contract" style="color:#00a080">📋 Contract Remote</a>
+        <a href="/jobs?type=parttime" style="color:#00a080">⏰ Part-time Remote</a>
+      </div>
+    </div>
+    <div class="job-card">
+      <div class="card-title">XML Sitemaps</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.75rem;font-size:.88rem">
+        <a href="/sitemap.xml" style="color:#00a080">📄 Sitemap Index</a>
+        <a href="/sitemap-static.xml" style="color:#00a080">📄 Static Pages</a>
+        <a href="/sitemap-1.xml" style="color:#00a080">📄 Jobs 1–1,000</a>
+        <a href="/sitemap-2.xml" style="color:#00a080">📄 Jobs 1,001–2,000</a>
+        <span style="color:#889">… ${TOTAL_SITEMAPS.toLocaleString()} sitemap files total</span>
+      </div>
+    </div>
+    <div class="job-card">
+      <div class="card-title">Job Range</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.75rem;font-size:.88rem">
+        <a href="/jobs/1" style="color:#00a080">Job #1</a>
+        <a href="/jobs/500000" style="color:#00a080">Job #500,000</a>
+        <a href="/jobs/1000000" style="color:#00a080">Job #1,000,000</a>
+        <a href="/jobs/2000000" style="color:#00a080">Job #2,000,000 (Last)</a>
+      </div>
+    </div>
+  </div>
+</div>`;
+
+        return new Response(renderHTML({
+          title: 'Sitemap | USARemoteJobs.io',
+          meta: 'Sitemap for USARemoteJobs.io with 2 million remote job listings.',
+          bodyContent: body,
+          schema: null
+        }), {
+          headers: { 'Content-Type': 'text/html' }
+        });
+      }
+
+      // ── ROBOTS.TXT ─────────────────────────────────────────────────────────────
+      if (path === '/robots.txt') {
+        return new Response(`User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\nDisallow: /api/`, {
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      }
+
+      // ── API ─────────────────────────────────────────────────────────────────────
+      if (path === '/api/jobs') {
+        const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+        const limit = Math.min(50, parseInt(searchParams.get('limit')) || 20);
+        const start = (page - 1) * limit + 1;
+        const jobs = [];
+        for (let i = start; i < start + limit && i <= TOTAL_JOBS; i++) {
+          jobs.push(getJobData(i));
+        }
+        return new Response(JSON.stringify({ page, limit, total: TOTAL_JOBS, jobs }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (path.startsWith('/api/jobs/')) {
+        const id = parseInt(path.split('/').pop());
+        if (!id || id < 1 || id > TOTAL_JOBS) {
+          return new Response(JSON.stringify({ error: 'Job not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        return new Response(JSON.stringify({ job: getJobData(id), schema: getJobSchema(getJobData(id)) }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // ── 404 ─────────────────────────────────────────────────────────────────────
+      return new Response('404 - Page Not Found', { 
+        status: 404,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+
+    } catch (error) {
+      return new Response('Error: ' + error.message, {
+        status: 500,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+  }
+};
